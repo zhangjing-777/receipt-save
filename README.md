@@ -1,75 +1,81 @@
+# Receipt & Invoice Intelligent Archiving and Extraction Service
 
----
+This project is built with FastAPI and leverages LLMs (such as OpenRouter GPT) and Supabase to enable batch uploading, automatic information extraction, OCR recognition, and cloud archiving of receipts/invoices. It supports PDF, image formats, and is ideal for travel reimbursement, financial archiving, and similar scenarios.
 
-# 🧾 Receipt AI Extractor
+## Features
 
-An intelligent receipt processing service built with **FastAPI**, **OpenRouter**, and **Supabase**.
+- Batch upload of receipts/invoices (PDF, image formats)
+- Automatic conversion of PDF first page to image for unified processing
+- Use LLMs to intelligently extract key information (amount, vendor, date, currency, invoice number, address, etc.)
+- OCR recognition of image content
+- Results are automatically stored in Supabase cloud database
+- One-click deployment with Docker
 
-## 📦 Features
 
-This project allows users to upload receipts or invoices (images or PDFs), and the system automatically performs the following:
+## Environment Variables
 
-1. **PDF to Image**: Converts the first page of a PDF to a JPEG image;
-2. **Upload to Supabase Storage**;
-3. **Call OpenRouter LLM to extract receipt fields**:
-   
-   * Perform OCR to extract raw text from the image
-   * Vendor name, amount, date, currency, invoice number, etc.;
-   
-4. **Save the extracted data to Supabase tables**;
-5. **Generate a summary to inform users about the extraction results.**
+Create a `.env` file in the project root with the following content (fill in your actual values):
 
-## 🚀 Quick Start
-
-### 1. Install dependencies
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
 ```
-
-### 2. Configure `.env` file
-
-Example:
-
-```env
-SUPABASE_STORAGE_URL=https://xxx.supabase.co/storage/v1/object/public/receipts/
-SUPABASE_TABLE_URL=https://xxx.supabase.co/rest/v1/receipt_table
-SUPABASE_STATUS_TABLE_URL=https://xxx.supabase.co/rest/v1/receipt_status
-SUPABASE_TOKEN=your_supabase_service_role_token
-SUPABASE_API_KEY=your_supabase_anon_or_key
+SUPABASE_STORAGE_URL=your_supabase_storage_url
+SUPABASE_TABLE_URL=your_supabase_table_api_url
+SUPABASE_TOKEN=your_supabase_token
+SUPABASE_API_KEY=your_supabase_api_key
+SUPABASE_STATUS_TABLE_URL=your_supabase_status_table_api_url
 OPENROUTER_API_KEY=your_openrouter_api_key
-OPENROUTER_URL=https://openrouter.ai/api/v1/chat/completions
-MODEL=gpt-4o
+OPENROUTER_URL=your_openrouter_api_url
+MODEL=your_model_name (e.g. gpt-3.5-turbo)
 ```
 
-### 3. Run the service
+## Quick Start
+
+### 1. Run Locally
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-Visit the documentation page:
-[http://localhost:8002/docs](http://localhost:8002/docs)
+The service will listen on port `8000` by default.
 
-## 🔁 Webhook Endpoint
+### 2. Docker Deployment
 
-### POST `/webhook/chat`
+#### Build the image
 
-Used to upload receipt files and receive summarized extraction results.
-
-#### Request Parameters (multipart/form-data):
-
-* `chatInput`: Description containing user ID, e.g.:
-  `"user 1234 batch uploaded 3 receipts"`
-* `files`: One or more image or PDF files.
-
-#### Sample Response:
-
-```json
-{
-  "summary": "✅ 2 receipts backed up successfully:\n- Uber, $22.5 on 2024-05-12\n- Hotel ABC, $198.0 on 2024-05-10\n\nAll receipts were successfully backed up."
-}
+```bash
+docker build -t receipt-save .
 ```
+
+#### Run the container
+
+```bash
+docker run --env-file .env -p 8000:8000 receipt-save
+```
+
+### 3. Docker Compose
+
+For one-click deployment, use:
+
+```bash
+docker-compose up --build
+```
+
+The service will be mapped to port `8002` on your host.
+
+## API
+
+### Upload Endpoint
+
+- Path: `POST /webhook/chat`
+- Parameters:
+  - `chatInput`: text, includes user info, batch info, etc.
+  - `files`: multiple file upload, supports PDF and images
+- Returns: summary of extraction and archiving results
+
+## Typical Workflow
+
+1. User uploads receipts/invoices and description via form or automation tool
+2. Service processes files (PDF to image, OCR, information extraction)
+3. Structured data and original images/text are stored in Supabase
+4. Returns a summary of the archiving result
 
