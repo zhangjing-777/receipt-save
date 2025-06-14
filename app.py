@@ -1,19 +1,23 @@
 import os
+import json
 import aiohttp
 import asyncio
 import hashlib
-import json
 import logging
+from io import BytesIO
 from datetime import datetime
 from dotenv import load_dotenv
 from pdf2image import convert_from_bytes
-from io import BytesIO
+
 
 # ✅ Load environment variables
 load_dotenv()
 
 # ✅ Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # ✅ Configuration
@@ -63,7 +67,7 @@ async def call_openrouter(session, user_input, file_url):
     - `invoice_date`: The invoice or receipt issue date. It must be returned in the format timestamp(`YYYY-MM-DD HH:mm:ss`).
                       Do **not** return vague expressions such as "today", "mañana", or "next Friday".
                       Convert such expressions into a specific date using the system time.
-
+    - `amount`: Please extract the final paid amount from this invoice. Prioritize values explicitly labeled as:"Total Paid", "Total Charged", "Cobrado", "Amount Charged", or similar;If multiple totals exist, prefer the one that includes tax and/or is marked as paid;Avoid using subtotal or pre-tax fields as the final amount.
     - `address`: The invoice or receipt address. For transportation invoices, return in the format `"Origin - Destination"`
     """
 
@@ -114,7 +118,7 @@ async def call_openrouter_ocr(session, file_url):
     - Preserve the original paragraph and line break structure (if any)
     - Do NOT include phrases like “The extracted text is:”
     - If the image is empty or contains no text, return an empty string without explanation
-    
+
     """
 
     user_prompt = [
@@ -139,8 +143,8 @@ async def call_openrouter_ocr(session, file_url):
             raise Exception(f"OpenRouter failed: {await resp.text()}")
         result = await resp.json()
         return result["choices"][0]["message"]["content"]
-    
-    
+
+
 # --- Process a single receipt ---
 async def process_receipt(session, item):
     try:
@@ -186,7 +190,7 @@ async def process_receipt(session, item):
 
     except Exception as e:
         logger.error("❌ Error processing receipt: %s", str(e))
-        return {"status": "fail", "error": str(e), "vendor_name": "?", "amount": "?", "invoice_date": "?"}
+        return {"status": "fail", "error": str(e), "vendor_name": item['fileName'], "amount": "?", "invoice_date": "?"}
 
 
 # --- Save upload status ---

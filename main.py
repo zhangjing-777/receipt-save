@@ -6,8 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import mimetypes
 from app import main, pdf_first_page_to_image_bytes
 
-# ✅ 设置日志记录
-logging.basicConfig(level=logging.INFO)
+# ✅ Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -31,7 +34,7 @@ async def receive_receipt(
 
     logger.info("📥 Received chatInput: %s", chatInput)
     logger.info("📎 Number of uploaded files: %d", len(files))
-    
+
     # Extract user_id from chatInput, e.g. "user 12345 batch uploaded 3 receipts"
     match = re.search(r"user (\S+?) batch uploaded", chatInput)
     user_id = match.group(1) if match else "unknown"
@@ -63,4 +66,3 @@ async def receive_receipt(
 
     logger.info("✅ Summary returned from main():\n%s", result_summary)
     return {"summary": result_summary}
-
